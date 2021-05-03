@@ -1,0 +1,5 @@
+.*
+_*
+*.h5
+*.sh
+app/cacheFile
