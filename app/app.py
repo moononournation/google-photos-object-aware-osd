@@ -50,7 +50,7 @@ def getIndexPage():
 <style type="text/css">body{margin:0;}</style>
 <script>
 function p(){document.getElementById("photo").src="/OSDPhoto?w="+window.innerWidth+"&h="+window.innerHeight+"&t="+Date.now();}
-window.onload=function(){p();setInterval(p,60000);};
+window.onload=function(){p();window.setTimeout(function(){p();setInterval(p,60000);},60000-(Date.now()%60000));};
 </script>
 </head>
 <body><img id="photo"><body>

@@ -10,7 +10,7 @@
 #docker buildx build --platform linux/amd64,linux/arm -t moononournation/imageai:2.1.6 .
 #docker buildx build --platform linux/amd64,linux/arm -t moononournation/imageai:2.1.6 --push .
 
-FROM tensorflow/tensorflow
+FROM tensorflow/tensorflow:2.4.1
 
 EXPOSE 5000
 
@@ -24,6 +24,6 @@ RUN pip install keras==2.4.3 numpy==1.19.3 pillow==7.0.0 scipy==1.4.1 h5py==2.10
 #install HTTP server related
 ENV DEBIAN_FRONTEND=noninteractive
 RUN apt-get install -yq --no-install-recommends tzdata
-RUN pip install flask paho-mqtt
+RUN pip install flask mtcnn paho-mqtt
 
 CMD [ "python", "app.py" ]

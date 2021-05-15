@@ -25,6 +25,17 @@ def getRandomPhoto():
     return photoList[randomIdx]
 
 
+def getWeight(item, iBp, width, height):
+    weight = item["percentage_probability"]
+    if item["name"] == 'person':
+        weight *= 2
+    elif item["name"] == 'face':
+        weight *= 1.5  # percentage > 66.7 become > 1
+        weight *= weight * 100
+    return weight * (iBp[2] - iBp[0] + 1) * \
+        (iBp[3] - iBp[1] + 1) / width / height
+
+
 def getDimension(filename, image, width, height, OSDRATIO):
     iW = image.width
     iH = image.height
@@ -76,11 +87,7 @@ def getDimension(filename, image, width, height, OSDRATIO):
 
         for item in items:
             iBp = item["box_points"]
-            weight = item["percentage_probability"] * \
-                ((iBp[2] - iBp[0] + 1) / width) * \
-                ((iBp[3] - iBp[1] + 1) / height)
-            if item["name"] == 'person':
-                weight *= 10
+            weight = getWeight(item, iBp, width, height)
             overlapA += overlap(iBp, cropA) * weight
             overlapB += overlap(iBp, cropB) * weight
             overlapC += overlap(iBp, cropC) * weight
@@ -121,11 +128,7 @@ def getDimension(filename, image, width, height, OSDRATIO):
                        (osdSE[2] / scale) + crop_rect[0], (osdSE[3] / scale) + crop_rect[1])
         for item in items:
             iBp = item["box_points"]
-            weight = item["percentage_probability"] * \
-                (iBp[2] - iBp[0] + 1) * \
-                (iBp[3] - iBp[1] + 1) / width / height
-            if item["name"] == 'person':
-                weight *= 10
+            weight = getWeight(item, iBp, width, height)
             overlapNW += overlap(iBp, scaledOsdNW) * weight
             overlapNE += overlap(iBp, scaledOsdNE) * weight
             overlapCT += overlap(iBp, scaledOsdCT) * weight
