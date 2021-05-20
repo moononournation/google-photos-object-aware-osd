@@ -26,14 +26,16 @@ docker run -it -p 5000:5000 -v `pwd`/app:/app -eDEBUG=Y -eGOOGLEPHOTO=https://ph
 ### Jetson Nano 2G
 #### Preparation
 ```
-sudo apt-get update && apt-get install -y --no-install-recommends libhdf5-serial-dev hdf5-tools libhdf5-dev zlib1g-dev zip libjpeg8-dev liblapack-dev libblas-dev gfortran libgl1-mesa-glx libglib2.0-0
-sudo apt-get install python3-pip
-sudo pip3 install -U pip testresources setuptools==49.6.0 
-sudo pip3 install -U numpy==1.19.4 future==0.18.2 mock==3.0.5 h5py==2.10.0 keras_preprocessing==1.1.1 keras_applications==1.0.8 gast==0.2.2 futures protobuf pybind11
-sudo pip3 install --pre --extra-index-url https://developer.download.nvidia.com/compute/redist/jp/v45 tensorflow
+sudo apt-get update
+sudo apt-get install -y --no-install-recommends libhdf5-serial-dev hdf5-tools libhdf5-dev zlib1g-dev zip libjpeg8-dev liblapack-dev libblas-dev gfortran libgl1-mesa-glx libglib2.0-0 python3-pip
 
-sudo pip install mtcnn==0.1.0 keras==2.4.3 pillow==7.0.0 scipy==1.4.1 matplotlib==3.3.2 opencv-python keras-resnet==0.2.0 imageai==2.1.6
-sudo pip install flask paho-mqtt
+python3 -m pip install -U pip
+pip install -U testresources setuptools==49.6.0 numpy==1.19.4 future==0.18.2 mock==3.0.5 h5py==2.10.0 keras_preprocessing==1.1.1 keras_applications==1.0.8 gast==0.2.2 futures protobuf pybind11
+
+pip install --pre --extra-index-url https://developer.download.nvidia.com/compute/redist/jp/v45 tensorflow
+
+pip install mtcnn==0.1.0 keras==2.4.3 pillow==7.0.0 scipy==1.4.1 matplotlib==3.3.2 opencv-python keras-resnet==0.2.0 imageai==2.1.6
+pip install flask paho-mqtt
 ```
 #### Run
 ```
