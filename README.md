@@ -7,7 +7,7 @@ Google Photos photo frame with ImageAI object aware OSD
 ### Download trained models
 
 You can download latest trained models at ImageAI release page:
-https://github.com/OlafenwaMoses/ImageAI/releases/tag/1.0
+https://github.com/OlafenwaMoses/ImageAI/releases
 
 And copy the download model, e.g. resnet50_coco_best_v2.1.0.h5, to app/model folder.
 
