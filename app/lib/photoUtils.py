@@ -1,3 +1,4 @@
+from PIL import Image, ImageEnhance
 import json
 import os
 import random
@@ -20,45 +21,130 @@ def updatePhotoList(PHOTOPATH, DETECTEDJSONPATH):
             continue
 
 
-def getRandomPhoto():
-    randomIdx = random.randint(0, len(photoList) - 1)
-    return photoList[randomIdx]
-
-
 def getWeight(item, iBp, width, height):
     weight = item["percentage_probability"]
     if item["name"] == 'person':
         weight *= 2
     elif item["name"] == 'face':
         weight *= 1.5  # percentage > 66.7 become > 1
-        weight *= weight * 100
+        weight *= weight * 4
     return weight * (iBp[2] - iBp[0] + 1) * \
         (iBp[3] - iBp[1] + 1) / width / height
 
 
-def getDimension(filename, image, width, height, OSDRATIO):
-    iW = image.width
-    iH = image.height
-    wScale = width / iW
-    hScale = height / iH
-    scale = 0
-    cW = 0
-    cH = 0
-    if wScale < hScale:
-        scale = hScale
-        cW = width / scale
-        cH = iH
-        cropA = (0, 0, cW - 1, cH - 1)
-        cropB = ((iW - cW) / 2, 0, ((iW + cW) / 2) - 1, cH - 1)
-        cropC = (iW - cW, 0, iW - 1, cH - 1)
-    else:
-        scale = wScale
-        cW = iW
-        cH = height / scale
-        cropA = (0, 0, cW - 1, cH - 1)
-        cropB = (0, (iH - cH) / 2, cW - 1, ((iH + cH) / 2) - 1)
-        cropC = (0, iH - cH, cW - 1, iH - 1)
+def overlap(rectA, rectB):
+    left = max(rectA[0], rectB[0])
+    top = max(rectA[1], rectB[1])
+    right = min(rectA[2], rectB[2])
+    bottom = min(rectA[3], rectB[3])
 
+    if ((right >= left) and (bottom >= top)):
+        return (right - left + 1) * (bottom - top + 1)
+    else:
+        return 0
+
+
+def getRandomPhoto(width, height, PHOTOPATH, DETECTEDPHOTOPATH, DETECTEDJSONPATH):
+    scale = 0
+    crop_rect = (0, 0, 0, 0)
+    overlapWeightRatio = 0
+    while overlapWeightRatio < 0.8:
+        randomIdx = random.randint(0, len(photoList) - 1)
+
+        filename = photoList[randomIdx]
+
+        if DEBUG == 'Y':
+            photoFilename = os.path.join(DETECTEDPHOTOPATH, filename)
+        else:
+            photoFilename = os.path.join(PHOTOPATH, filename)
+
+        image = Image.open(photoFilename)
+        iW = image.width
+        iH = image.height
+        wScale = width / iW
+        hScale = height / iH
+        scale = 0
+        cW = 0
+        cH = 0
+        if wScale < hScale:
+            scale = hScale
+            cW = width / scale
+            cH = iH
+            step = (iW - cW) / 4
+            offset = 0
+            cropA = (offset, 0, offset + cW - 1, cH - 1)
+            offset += step
+            cropB = (offset, 0, offset + cW - 1, cH - 1)
+            offset += step
+            cropC = (offset, 0, offset + cW - 1, cH - 1)
+            offset += step
+            cropD = (offset, 0, offset + cW - 1, cH - 1)
+            cropE = (iW - cW, 0, iW - 1, cH - 1)
+        else:
+            scale = wScale
+            cW = iW
+            cH = height / scale
+            step = (iH - cH) / 4
+            offset = 0
+            cropA = (0, offset, cW - 1, offset + cH - 1)
+            offset += step
+            cropB = (0, offset, cW - 1, offset + cH - 1)
+            offset += step
+            cropC = (0, offset, cW - 1, offset + cH - 1)
+            offset += step
+            cropD = (0, offset, cW - 1, offset + cH - 1)
+            cropE = (0, iH - cH, cW - 1, iH - 1)
+
+        jsonFilename = os.path.join(DETECTEDJSONPATH, filename + ".json")
+        with open(jsonFilename) as jsonFile:
+            items = json.load(jsonFile)
+
+            # determine CROP area
+            fullWeight = 0
+            overlapA = 0
+            overlapB = 0
+            overlapC = 0
+            overlapD = 0
+            overlapE = 0
+
+            for item in items:
+                iBp = item["box_points"]
+                weight = getWeight(item, iBp, width, height)
+                fullWeight += (iBp[2] - iBp[0] + 1) * (iBp[3] - iBp[1] + 1) * weight
+                overlapA += overlap(iBp, cropA) * weight
+                overlapB += overlap(iBp, cropB) * weight
+                overlapC += overlap(iBp, cropC) * weight
+                overlapD += overlap(iBp, cropD) * weight
+                overlapE += overlap(iBp, cropE) * weight
+                if DEBUG == 'Y':
+                    print(item["name"], "|", str(item["percentage_probability"]),
+                            "|", iBp, "|", weight)
+
+            # Crop select most details area
+            max_overlap = max(overlapA, overlapB,
+                                overlapC, overlapD, overlapE)
+            overlapWeightRatio = max_overlap / fullWeight
+            if DEBUG == 'Y':
+                print("Crop overlap:", overlapA, "|", overlapB, "|",
+                        overlapC, "|", overlapD, "|", overlapE, "|", max_overlap)
+            print("Overlap Weight Ratio:", overlapWeightRatio)
+
+            # prefer centre if same value
+            if overlapC == max_overlap:
+                crop_rect = cropC
+            if overlapB == max_overlap:
+                crop_rect = cropB
+            if overlapD == max_overlap:
+                crop_rect = cropD
+            elif overlapA == max_overlap:
+                crop_rect = cropA
+            elif overlapE == max_overlap:
+                crop_rect = cropE
+
+    return filename, scale, crop_rect, image
+
+
+def getDimension(filename, width, height, scale, crop_rect, OSDRATIO):
     osdSize = min(width, height) * OSDRATIO
     margin = osdSize * 0.05
 
@@ -77,37 +163,8 @@ def getDimension(filename, image, width, height, OSDRATIO):
     with open(jsonFilename) as jsonFile:
         items = json.load(jsonFile)
 
-        # determine CROP area
-        overlapA = 0
-        overlapB = 0
-        overlapC = 0
-
         osdSize = min(width, height) * OSDRATIO
         margin = osdSize * 0.05
-
-        for item in items:
-            iBp = item["box_points"]
-            weight = getWeight(item, iBp, width, height)
-            overlapA += overlap(iBp, cropA) * weight
-            overlapB += overlap(iBp, cropB) * weight
-            overlapC += overlap(iBp, cropC) * weight
-            if DEBUG == 'Y':
-                print(item["name"], "|", str(item["percentage_probability"]),
-                      "|", iBp, "|", weight)
-
-        # Crop select most details area
-        max_overlap = max(overlapA, overlapB, overlapC)
-        if DEBUG == 'Y':
-            print("Crop overlap:", overlapA, "|", overlapB,
-                  "|", overlapC, "|", max_overlap)
-
-        # prefer centre if same value
-        if overlapB == max_overlap:
-            crop_rect = cropB
-        elif overlapA == max_overlap:
-            crop_rect = cropA
-        elif overlapC == max_overlap:
-            crop_rect = cropC
 
         # determine OSD position
         overlapNW = 0
@@ -153,16 +210,4 @@ def getDimension(filename, image, width, height, OSDRATIO):
         elif overlapSE == min_overlap:
             osd_rect = osdSE
 
-    return crop_rect, osd_rect, osdSize
-
-
-def overlap(rectA, rectB):
-    left = max(rectA[0], rectB[0])
-    top = max(rectA[1], rectB[1])
-    right = min(rectA[2], rectB[2])
-    bottom = min(rectA[3], rectB[3])
-
-    if ((right >= left) and (bottom >= top)):
-        return (right - left + 1) * (bottom - top + 1)
-    else:
-        return 0
+    return osd_rect, osdSize
