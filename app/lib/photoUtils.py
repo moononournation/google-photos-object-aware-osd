@@ -6,6 +6,7 @@ import random
 DEBUG = os.getenv('DEBUG')
 photoList = []
 random.seed()
+maxOverlapWeightRatioDict = {}
 
 
 def updatePhotoList(PHOTOPATH, DETECTEDJSONPATH):
@@ -23,11 +24,11 @@ def updatePhotoList(PHOTOPATH, DETECTEDJSONPATH):
 
 def getWeight(item, iBp, width, height):
     weight = item["percentage_probability"]
-    if item["name"] == 'person':
-        weight *= 2
-    elif item["name"] == 'face':
+    # if item["name"] == 'person':
+    #     weight *= 2
+    if item["name"] == 'face':
         weight *= 1.5  # percentage > 66.7 become > 1
-        weight *= weight * 4
+        weight *= weight # amplifer weight of face
     return weight * (iBp[2] - iBp[0] + 1) * \
         (iBp[3] - iBp[1] + 1) / width / height
 
@@ -45,10 +46,17 @@ def overlap(rectA, rectB):
 
 
 def getRandomPhoto(width, height, PHOTOPATH, DETECTEDPHOTOPATH, DETECTEDJSONPATH):
+    global maxOverlapWeightRatio
+
     scale = 0
     crop_rect = (0, 0, 0, 0)
-    overlapWeightRatio = 0
-    while overlapWeightRatio < 0.8:
+    overlapWeightRatio = -1
+    aspectRatioStr = '{0:.2f}'.format(width / height)
+    if (aspectRatioStr in maxOverlapWeightRatioDict):
+        maxOverlapWeightRatio = maxOverlapWeightRatioDict[aspectRatioStr]
+    else:
+        maxOverlapWeightRatio = 0
+    while overlapWeightRatio < maxOverlapWeightRatio:
         randomIdx = random.randint(0, len(photoList) - 1)
 
         filename = photoList[randomIdx]
@@ -110,7 +118,8 @@ def getRandomPhoto(width, height, PHOTOPATH, DETECTEDPHOTOPATH, DETECTEDJSONPATH
             for item in items:
                 iBp = item["box_points"]
                 weight = getWeight(item, iBp, width, height)
-                fullWeight += (iBp[2] - iBp[0] + 1) * (iBp[3] - iBp[1] + 1) * weight
+                fullWeight += (iBp[2] - iBp[0] + 1) * \
+                    (iBp[3] - iBp[1] + 1) * weight
                 overlapA += overlap(iBp, cropA) * weight
                 overlapB += overlap(iBp, cropB) * weight
                 overlapC += overlap(iBp, cropC) * weight
@@ -118,15 +127,19 @@ def getRandomPhoto(width, height, PHOTOPATH, DETECTEDPHOTOPATH, DETECTEDJSONPATH
                 overlapE += overlap(iBp, cropE) * weight
                 if DEBUG == 'Y':
                     print(item["name"], "|", str(item["percentage_probability"]),
-                            "|", iBp, "|", weight)
+                          "|", iBp, "|", weight)
 
             # Crop select most details area
             max_overlap = max(overlapA, overlapB,
-                                overlapC, overlapD, overlapE)
-            overlapWeightRatio = max_overlap / fullWeight
+                              overlapC, overlapD, overlapE)
+            if fullWeight == 0:
+                overlapWeightRatio = 1
+            else:
+                overlapWeightRatio = max_overlap / fullWeight
             if DEBUG == 'Y':
                 print("Crop overlap:", overlapA, "|", overlapB, "|",
-                        overlapC, "|", overlapD, "|", overlapE, "|", max_overlap)
+                      overlapC, "|", overlapD, "|", overlapE, "|", max_overlap)
+
             print("Overlap Weight Ratio:", overlapWeightRatio)
 
             # prefer centre if same value
@@ -140,6 +153,13 @@ def getRandomPhoto(width, height, PHOTOPATH, DETECTEDPHOTOPATH, DETECTEDJSONPATH
                 crop_rect = cropA
             elif overlapE == max_overlap:
                 crop_rect = cropE
+
+    if (overlapWeightRatio > 0.9):
+        overlapWeightRatio = 0.9
+    if (maxOverlapWeightRatio < overlapWeightRatio):
+        maxOverlapWeightRatioDict[aspectRatioStr] = overlapWeightRatio
+        if DEBUG == 'Y':
+            print("Adjust Max Overlap Weight Ratio:", maxOverlapWeightRatio)
 
     return filename, scale, crop_rect, image
 
