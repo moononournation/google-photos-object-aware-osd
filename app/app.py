@@ -49,7 +49,7 @@ def getIndexPage():
 <head>
 <style type="text/css">body{margin:0;}</style>
 <script>
-function p(){document.getElementById("photo").src="/OSDPhoto?w="+window.innerWidth+"&h="+window.innerHeight+"&t="+Date.now();}
+function p(){q=window.location.search;document.getElementById("photo").src="/OSDPhoto"+((q>"")?q+"&":"?")+"w="+window.innerWidth+"&h="+window.innerHeight+"&t="+Date.now();}
 window.onload=function(){p();window.setTimeout(function(){p();setInterval(p,60000);},60000-(Date.now()%60000));};
 </script>
 </head>
@@ -77,8 +77,10 @@ def getOSDPhoto():
     osd_rect, osdSize = photoUtils.getDimension(
         filename, width, height, scale, crop_rect, OSDRATIO)
 
-    converter = ImageEnhance.Color(image)
-    image = converter.enhance(1.15)
+    colorEnhance = request.values.get("colorEnhance")
+    if colorEnhance:
+        converter = ImageEnhance.Color(image)
+        image = converter.enhance(float(colorEnhance))
 
     if DEBUG == 'Y':
         print("crop_rect:", crop_rect, "osd_rect:", osd_rect,
