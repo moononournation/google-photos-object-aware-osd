@@ -6,7 +6,7 @@ import random
 DEBUG = os.getenv('DEBUG')
 photoList = []
 random.seed()
-maxOverlapWeightRatioDict = {}
+overlapWeightRatioThresholdDict = {}
 
 
 def updatePhotoList(PHOTOPATH, DETECTEDJSONPATH):
@@ -46,17 +46,17 @@ def overlap(rectA, rectB):
 
 
 def getRandomPhoto(width, height, PHOTOPATH, DETECTEDPHOTOPATH, DETECTEDJSONPATH):
-    global maxOverlapWeightRatio
+    global overlapWeightRatioThreshold
 
     scale = 0
     crop_rect = (0, 0, 0, 0)
     overlapWeightRatio = -1
     aspectRatioStr = '{0:.2f}'.format(width / height)
-    if (aspectRatioStr in maxOverlapWeightRatioDict):
-        maxOverlapWeightRatio = maxOverlapWeightRatioDict[aspectRatioStr]
+    if (aspectRatioStr in overlapWeightRatioThresholdDict):
+        overlapWeightRatioThreshold = overlapWeightRatioThresholdDict[aspectRatioStr]
     else:
-        maxOverlapWeightRatio = 0
-    while overlapWeightRatio < maxOverlapWeightRatio:
+        overlapWeightRatioThreshold = 0
+    while overlapWeightRatio < overlapWeightRatioThreshold:
         randomIdx = random.randint(0, len(photoList) - 1)
 
         filename = photoList[randomIdx]
@@ -154,12 +154,10 @@ def getRandomPhoto(width, height, PHOTOPATH, DETECTEDPHOTOPATH, DETECTEDJSONPATH
             elif overlapE == max_overlap:
                 crop_rect = cropE
 
-    if (overlapWeightRatio > 0.9):
-        overlapWeightRatio = 0.9
-    if (maxOverlapWeightRatio < overlapWeightRatio):
-        maxOverlapWeightRatioDict[aspectRatioStr] = overlapWeightRatio
-        if DEBUG == 'Y':
-            print("Adjust Max Overlap Weight Ratio:", maxOverlapWeightRatio)
+    overlapWeightRatio = round(overlapWeightRatio - 0.051, 1) # truncate value after 1 decimal place
+    if (overlapWeightRatioThreshold < overlapWeightRatio):
+        overlapWeightRatioThresholdDict[aspectRatioStr] = overlapWeightRatio
+        print("Adjust Overlap Weight Ratio Threshold to:", overlapWeightRatio)
 
     return filename, scale, crop_rect, image
 
