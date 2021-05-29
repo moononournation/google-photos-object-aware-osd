@@ -27,7 +27,6 @@ if (not os.path.exists(DETECTEDJSONPATH)):
 WEATHERICONPATH = os.path.join(CACHEFILEPATH, "weatherIcon")
 if (not os.path.exists(WEATHERICONPATH)):
     os.mkdir(WEATHERICONPATH)
-OSDRATIO = 0.4
 
 if GOOGLEPHOTOURL and (GOOGLEPHOTOURL > ""):
     googlePhoto.updatePhoto(PHOTOPATH)
@@ -70,12 +69,17 @@ def getOSDPhoto():
         height = 240
     else:
         height = int(height)
+    osdRatio = request.values.get("o")
+    if osdRatio is None:
+        osdRatio = 0.5
+    else:
+        osdRatio = float(osdRatio)
 
     filename, scale, crop_rect, image = photoUtils.getRandomPhoto(
         width, height, PHOTOPATH, DETECTEDPHOTOPATH, DETECTEDJSONPATH)
 
     osd_rect, osdSize = photoUtils.getDimension(
-        filename, width, height, scale, crop_rect, OSDRATIO)
+        filename, width, height, scale, crop_rect, osdRatio)
 
     colorEnhance = request.values.get("colorEnhance")
     if colorEnhance:

@@ -162,9 +162,9 @@ def getRandomPhoto(width, height, PHOTOPATH, DETECTEDPHOTOPATH, DETECTEDJSONPATH
     return filename, scale, crop_rect, image
 
 
-def getDimension(filename, width, height, scale, crop_rect, OSDRATIO):
-    osdSize = min(width, height) * OSDRATIO
-    margin = osdSize * 0.05
+def getDimension(filename, width, height, scale, crop_rect, osdRatio):
+    osdSize = min(width, height) * osdRatio
+    margin = osdSize * 0.04
 
     osdNW = (margin, margin,
              margin + osdSize, margin + osdSize)
@@ -180,9 +180,6 @@ def getDimension(filename, width, height, scale, crop_rect, OSDRATIO):
     jsonFilename = os.path.join(jsonOutputPath, filename + ".json")
     with open(jsonFilename) as jsonFile:
         items = json.load(jsonFile)
-
-        osdSize = min(width, height) * OSDRATIO
-        margin = osdSize * 0.05
 
         # determine OSD position
         overlapNW = 0
