@@ -22,13 +22,24 @@ def updatePhotoList(PHOTOPATH, DETECTEDJSONPATH):
             continue
 
 
+# The object detection model (RetinaNet) supported by ImageAI can detect 80 different types of objects. They include:
+# person,  bicycle,  car, motorcycle, airplane, bus, train,  truck,  boat,  traffic light,  fire hydrant, stop_sign,
+# parking meter,   bench,   bird,   cat,   dog,   horse,   sheep,   cow,   elephant,   bear,   zebra,
+# giraffe,   backpack,   umbrella,   handbag,   tie,   suitcase,   frisbee,   skis,   snowboard,
+# sports ball,   kite,   baseball bat,   baseball glove,   skateboard,   surfboard,   tennis racket,
+# bottle,   wine glass,   cup,   fork,   knife,   spoon,   bowl,   banana,   apple,   sandwich,   orange,
+# broccoli,   carrot,   hot dog,   pizza,   donot,   cake,   chair,   couch,   potted plant,   bed,
+# dining table,   toilet,   tv,   laptop,   mouse,   remote,   keyboard,   cell phone,   microwave,   oven,
+# toaster,   sink,   refrigerator,   book,   clock,   vase,   scissors,   teddy bear,   hair dryer,   toothbrush.
 def getWeight(item, iBp, width, height):
     weight = item["percentage_probability"]
-    # if item["name"] == 'person':
+    if item["name"] in ' bench, couch, bed, refrigerator': # ignore big background objects
+        return 0
+    # elif item["name"] == 'person':
     #     weight *= 2
-    if item["name"] == 'face':
+    elif item["name"] == 'face':
         weight *= 1.5  # percentage > 66.7 become > 1
-        weight *= weight # amplifer weight of face
+        weight *= weight  # amplifer weight of face
     return weight * (iBp[2] - iBp[0] + 1) * \
         (iBp[3] - iBp[1] + 1) / width / height
 
@@ -78,7 +89,7 @@ def getRandomPhoto(width, height, PHOTOPATH, DETECTEDPHOTOPATH, DETECTEDJSONPATH
             scale = hScale
             cW = width / scale
             cH = iH
-            step = (iW - cW) / 4
+            step = (iW - cW) / 8
             offset = 0
             cropA = (offset, 0, offset + cW - 1, cH - 1)
             offset += step
@@ -87,12 +98,20 @@ def getRandomPhoto(width, height, PHOTOPATH, DETECTEDPHOTOPATH, DETECTEDJSONPATH
             cropC = (offset, 0, offset + cW - 1, cH - 1)
             offset += step
             cropD = (offset, 0, offset + cW - 1, cH - 1)
-            cropE = (iW - cW, 0, iW - 1, cH - 1)
+            offset += step
+            cropE = (offset, 0, offset + cW - 1, cH - 1)
+            offset += step
+            cropF = (offset, 0, offset + cW - 1, cH - 1)
+            offset += step
+            cropG = (offset, 0, offset + cW - 1, cH - 1)
+            offset += step
+            cropH = (offset, 0, offset + cW - 1, cH - 1)
+            cropI = (iW - cW, 0, iW - 1, cH - 1)
         else:
             scale = wScale
             cW = iW
             cH = height / scale
-            step = (iH - cH) / 4
+            step = (iH - cH) / 8
             offset = 0
             cropA = (0, offset, cW - 1, offset + cH - 1)
             offset += step
@@ -101,7 +120,15 @@ def getRandomPhoto(width, height, PHOTOPATH, DETECTEDPHOTOPATH, DETECTEDJSONPATH
             cropC = (0, offset, cW - 1, offset + cH - 1)
             offset += step
             cropD = (0, offset, cW - 1, offset + cH - 1)
-            cropE = (0, iH - cH, cW - 1, iH - 1)
+            offset += step
+            cropE = (0, offset, cW - 1, offset + cH - 1)
+            offset += step
+            cropF = (0, offset, cW - 1, offset + cH - 1)
+            offset += step
+            cropG = (0, offset, cW - 1, offset + cH - 1)
+            offset += step
+            cropH = (0, offset, cW - 1, offset + cH - 1)
+            cropI = (0, iH - cH, cW - 1, iH - 1)
 
         jsonFilename = os.path.join(DETECTEDJSONPATH, filename + ".json")
         with open(jsonFilename) as jsonFile:
@@ -114,6 +141,10 @@ def getRandomPhoto(width, height, PHOTOPATH, DETECTEDPHOTOPATH, DETECTEDJSONPATH
             overlapC = 0
             overlapD = 0
             overlapE = 0
+            overlapF = 0
+            overlapG = 0
+            overlapH = 0
+            overlapI = 0
 
             for item in items:
                 iBp = item["box_points"]
@@ -125,13 +156,14 @@ def getRandomPhoto(width, height, PHOTOPATH, DETECTEDPHOTOPATH, DETECTEDJSONPATH
                 overlapC += overlap(iBp, cropC) * weight
                 overlapD += overlap(iBp, cropD) * weight
                 overlapE += overlap(iBp, cropE) * weight
-                if DEBUG == 'Y':
-                    print(item["name"], "|", str(item["percentage_probability"]),
-                          "|", iBp, "|", weight)
+                overlapF += overlap(iBp, cropF) * weight
+                overlapG += overlap(iBp, cropG) * weight
+                overlapH += overlap(iBp, cropH) * weight
+                overlapI += overlap(iBp, cropI) * weight
 
             # Crop select most details area
-            max_overlap = max(overlapA, overlapB,
-                              overlapC, overlapD, overlapE)
+            max_overlap = max(overlapA, overlapB, overlapC, overlapD,
+                              overlapE, overlapF, overlapG, overlapH, overlapI)
             if fullWeight == 0:
                 overlapWeightRatio = 1
             else:
@@ -143,18 +175,27 @@ def getRandomPhoto(width, height, PHOTOPATH, DETECTEDPHOTOPATH, DETECTEDJSONPATH
             print("Overlap Weight Ratio:", overlapWeightRatio)
 
             # prefer centre if same value
-            if overlapC == max_overlap:
-                crop_rect = cropC
-            if overlapB == max_overlap:
-                crop_rect = cropB
-            if overlapD == max_overlap:
-                crop_rect = cropD
-            elif overlapA == max_overlap:
+            if overlapA == max_overlap:
                 crop_rect = cropA
+            elif overlapI == max_overlap:
+                crop_rect = cropI
+            elif overlapB == max_overlap:
+                crop_rect = cropB
+            elif overlapH == max_overlap:
+                crop_rect = cropH
+            elif overlapC == max_overlap:
+                crop_rect = cropC
+            elif overlapG == max_overlap:
+                crop_rect = cropG
+            elif overlapD == max_overlap:
+                crop_rect = cropD
+            elif overlapF == max_overlap:
+                crop_rect = cropF
             elif overlapE == max_overlap:
                 crop_rect = cropE
 
-    overlapWeightRatio = round(overlapWeightRatio - 0.051, 1) # truncate value after 1 decimal place
+    # truncate value after 1 decimal place
+    overlapWeightRatio = round(overlapWeightRatio - 0.051, 1)
     if (overlapWeightRatioThreshold < overlapWeightRatio):
         overlapWeightRatioThresholdDict[aspectRatioStr] = overlapWeightRatio
         print("Adjust Overlap Weight Ratio Threshold to:", overlapWeightRatio)
@@ -206,6 +247,9 @@ def getDimension(filename, width, height, scale, crop_rect, osdRatio):
             overlapCT += overlap(iBp, scaledOsdCT) * weight
             overlapSW += overlap(iBp, scaledOsdSW) * weight
             overlapSE += overlap(iBp, scaledOsdSE) * weight
+            if DEBUG == 'Y':
+                print(item["name"], "|", str(item["percentage_probability"]),
+                        "|", iBp, "|", weight)
 
         # OSD select least cover details area
         min_overlap = min(overlapNW, overlapNE,
