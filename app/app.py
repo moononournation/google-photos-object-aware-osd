@@ -1,5 +1,5 @@
 from flask import Flask, request, make_response
-from PIL import Image, ImageDraw, ImageEnhance, ImageFont
+from PIL import Image, ImageDraw, ImageEnhance, ImageFont, ImageOps
 from datetime import datetime
 import os
 from lib import googlePhoto
@@ -153,6 +153,14 @@ def getOSDPhoto():
         osdFont = ImageFont.truetype(fontpath, int(osdSize * 0.19))
         draw.text((osd_rect[0] + (osdSize * 0.42), osd_rect[1] + (osdSize * 0.79)),
                   humidityString, font=osdFont, fill=(255, 255, 255))
+
+    flip = request.values.get("flip")
+    if flip == 'Y':
+        image = ImageOps.flip(image)
+
+    mirror = request.values.get("mirror")
+    if mirror == 'Y':
+        image = ImageOps.mirror(image)
 
     # return jpeg image
     response = make_response(image.tobytes("jpeg", "RGB"))
