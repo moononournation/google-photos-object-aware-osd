@@ -1,4 +1,4 @@
-from PIL import Image, ImageEnhance
+from PIL import Image
 import json
 import os
 import random
@@ -33,13 +33,14 @@ def updatePhotoList(PHOTOPATH, DETECTEDJSONPATH):
 # toaster,   sink,   refrigerator,   book,   clock,   vase,   scissors,   teddy bear,   hair dryer,   toothbrush.
 def getWeight(item, iBp, width, height):
     weight = item["percentage_probability"]
-    if item["name"] in ' bench, couch, bed, refrigerator': # ignore big background objects
+    if item["name"] in ' bench, couch, bed, refrigerator':  # ignore big background objects
         return 0
-    # elif item["name"] == 'person':
-    #     weight *= 2
+    elif item["name"] == 'person':
+        weight *= 1.5  # percentage > 66.7 become > 1
+        weight *= weight  # amplifer weight of person
     elif item["name"] == 'face':
         weight *= 1.5  # percentage > 66.7 become > 1
-        weight *= weight  # amplifer weight of face
+        weight *= weight * 100  # amplifer weight of face
     return weight * (iBp[2] - iBp[0] + 1) * \
         (iBp[3] - iBp[1] + 1) / width / height
 
@@ -209,12 +210,20 @@ def getDimension(filename, width, height, scale, crop_rect, osdRatio):
 
     osdNW = (margin, margin,
              margin + osdSize, margin + osdSize)
+    osdN = ((width - osdSize) / 2, margin,
+            (width + osdSize) / 2, margin + osdSize)
     osdNE = (width - margin - osdSize, margin,
              width - margin, margin + osdSize)
+    osdW = (margin, (height - osdSize) / 2,
+            margin + osdSize, (height + osdSize) / 2)
     osdCT = ((width - osdSize) / 2, (height - osdSize) / 2,
              (width + osdSize) / 2, (height + osdSize) / 2)
+    osdE = (width - margin - osdSize, (height - osdSize) / 2,
+            width - margin, (height + osdSize) / 2)
     osdSW = (margin, height - margin - osdSize,
              margin + osdSize, height - margin)
+    osdS = ((width - osdSize) / 2, height - margin - osdSize,
+            (width + osdSize) / 2, height - margin)
     osdSE = (width - margin - osdSize, height - margin - osdSize,
              width - margin, height - margin)
 
@@ -224,49 +233,72 @@ def getDimension(filename, width, height, scale, crop_rect, osdRatio):
 
         # determine OSD position
         overlapNW = 0
+        overlapN = 0
         overlapNE = 0
+        overlapW = 0
         overlapCT = 0
+        overlapE = 0
         overlapSW = 0
+        overlapS = 0
         overlapSE = 0
 
         scaledOsdNW = ((osdNW[0] / scale) + crop_rect[0], (osdNW[1] / scale) + crop_rect[1],
                        (osdNW[2] / scale) + crop_rect[0], (osdNW[3] / scale) + crop_rect[1])
+        scaledOsdN = ((osdN[0] / scale) + crop_rect[0], (osdN[1] / scale) + crop_rect[1],
+                      (osdN[2] / scale) + crop_rect[0], (osdN[3] / scale) + crop_rect[1])
         scaledOsdNE = ((osdNE[0] / scale) + crop_rect[0], (osdNE[1] / scale) + crop_rect[1],
                        (osdNE[2] / scale) + crop_rect[0], (osdNE[3] / scale) + crop_rect[1])
+        scaledOsdW = ((osdW[0] / scale) + crop_rect[0], (osdW[1] / scale) + crop_rect[1],
+                      (osdW[2] / scale) + crop_rect[0], (osdW[3] / scale) + crop_rect[1])
         scaledOsdCT = ((osdCT[0] / scale) + crop_rect[0], (osdCT[1] / scale) + crop_rect[1],
                        (osdCT[2] / scale) + crop_rect[0], (osdCT[3] / scale) + crop_rect[1])
+        scaledOsdE = ((osdE[0] / scale) + crop_rect[0], (osdE[1] / scale) + crop_rect[1],
+                      (osdE[2] / scale) + crop_rect[0], (osdE[3] / scale) + crop_rect[1])
         scaledOsdSW = ((osdSW[0] / scale) + crop_rect[0], (osdSW[1] / scale) + crop_rect[1],
                        (osdSW[2] / scale) + crop_rect[0], (osdSW[3] / scale) + crop_rect[1])
+        scaledOsdS = ((osdS[0] / scale) + crop_rect[0], (osdS[1] / scale) + crop_rect[1],
+                      (osdS[2] / scale) + crop_rect[0], (osdS[3] / scale) + crop_rect[1])
         scaledOsdSE = ((osdSE[0] / scale) + crop_rect[0], (osdSE[1] / scale) + crop_rect[1],
                        (osdSE[2] / scale) + crop_rect[0], (osdSE[3] / scale) + crop_rect[1])
         for item in items:
             iBp = item["box_points"]
             weight = getWeight(item, iBp, width, height)
             overlapNW += overlap(iBp, scaledOsdNW) * weight
+            overlapN += overlap(iBp, scaledOsdN) * weight
             overlapNE += overlap(iBp, scaledOsdNE) * weight
+            overlapW += overlap(iBp, scaledOsdW) * weight
             overlapCT += overlap(iBp, scaledOsdCT) * weight
+            overlapE += overlap(iBp, scaledOsdE) * weight
             overlapSW += overlap(iBp, scaledOsdSW) * weight
+            overlapS += overlap(iBp, scaledOsdS) * weight
             overlapSE += overlap(iBp, scaledOsdSE) * weight
             if DEBUG == 'Y':
                 print(item["name"], "|", str(item["percentage_probability"]),
-                        "|", iBp, "|", weight)
+                      "|", iBp, "|", weight)
 
         # OSD select least cover details area
-        min_overlap = min(overlapNW, overlapNE,
-                          overlapCT, overlapSW, overlapSE)
+        min_overlap = min(overlapNW, overlapN, overlapNE, overlapW,
+                          overlapCT, overlapE, overlapSW, overlapS, overlapSE)
         if DEBUG == 'Y':
-            print("OSD overlap:", overlapNW, "|", overlapNE, "|", overlapCT,
-                  "|", overlapSW, "|", overlapSE, "|", min_overlap)
+            print("OSD overlap:", overlapNW, "|", overlapN, "|", overlapNE, "|", overlapW, "|", overlapCT, "|", overlapE, "|", overlapSW, "|", overlapS, "|", overlapSE, "|", min_overlap)
 
         if overlapNW == min_overlap:
             osd_rect = osdNW
         elif overlapNE == min_overlap:
             osd_rect = osdNE
-        elif overlapCT == min_overlap:
-            osd_rect = osdCT
         elif overlapSW == min_overlap:
             osd_rect = osdSW
         elif overlapSE == min_overlap:
             osd_rect = osdSE
+        elif overlapN == min_overlap:
+            osd_rect = osdN
+        elif overlapE == min_overlap:
+            osd_rect = osdE
+        elif overlapS == min_overlap:
+            osd_rect = osdS
+        elif overlapW == min_overlap:
+            osd_rect = osdW
+        elif overlapCT == min_overlap:
+            osd_rect = osdCT
 
     return osd_rect, osdSize
