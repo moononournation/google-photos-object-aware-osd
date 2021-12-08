@@ -172,8 +172,7 @@ def getRandomPhoto(width, height, PHOTOPATH, DETECTEDPHOTOPATH, DETECTEDJSONPATH
             if DEBUG == 'Y':
                 print("Crop overlap:", overlapA, "|", overlapB, "|",
                       overlapC, "|", overlapD, "|", overlapE, "|", max_overlap)
-
-            print("Overlap Weight Ratio:", overlapWeightRatio)
+                print("Overlap Weight Ratio:", overlapWeightRatio)
 
             # prefer centre if same value
             if overlapA == max_overlap:

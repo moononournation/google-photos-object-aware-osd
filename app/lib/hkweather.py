@@ -17,7 +17,11 @@ def updateWeather(WEATHERICONPATH):
     global lastUpdate, imageUrl, temperature, humidity, weatherIcon
     now = datetime.now()
 
-    if (not lastUpdate) or ((lastUpdate - now).seconds > (30 * 60)):
+    if (not lastUpdate) or ((now - lastUpdate).seconds > (59 * 60)):
+        imageUrl = None
+        weatherIcon = None
+        temperature = None
+        humidity = None
         r = requests.get(RSSURL, allow_redirects=True)
 
         for iterLine in r.iter_lines():
@@ -31,6 +35,7 @@ def updateWeather(WEATHERICONPATH):
                         startPos += len(IMAGESEARCHPATTERN)
                         endPos = line.find("\"", startPos)
                         imageUrl = line[startPos:endPos]
+                        print("imageUrl: ",imageUrl)
                 if not temperature:
                     startPos = line.find(TEMPERATURESEARCHPATTERN)
                     # print(startPos)
@@ -38,6 +43,7 @@ def updateWeather(WEATHERICONPATH):
                         startPos += len(TEMPERATURESEARCHPATTERN)
                         endPos = line.find(" ", startPos)
                         temperature = int(line[startPos:endPos])
+                        print("temperature: ", temperature)
                 if not humidity:
                     startPos = line.find(HUMIDITYSEARCHPATTERN)
                     # print(startPos)
@@ -45,6 +51,7 @@ def updateWeather(WEATHERICONPATH):
                         startPos += len(HUMIDITYSEARCHPATTERN)
                         endPos = line.find(" ", startPos)
                         humidity = int(line[startPos:endPos])
+                        print("humidity: ", humidity)
 
         if imageUrl:
             startPos = imageUrl.rfind("/") + 1
