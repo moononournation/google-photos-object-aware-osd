@@ -40,7 +40,7 @@ def getWeight(item, iBp, width, height):
         weight *= weight  # amplifer weight of person
     elif item["name"] == 'face':
         weight *= 1.5  # percentage > 66.7 become > 1
-        weight *= weight * 100  # amplifer weight of face
+        weight *= weight * 400  # amplifer weight of face
     return weight * (iBp[2] - iBp[0] + 1) * \
         (iBp[3] - iBp[1] + 1) / width / height
 
@@ -196,7 +196,7 @@ def getRandomPhoto(width, height, PHOTOPATH, DETECTEDPHOTOPATH, DETECTEDJSONPATH
 
     # truncate value after 1 decimal place
     overlapWeightRatio = round(overlapWeightRatio - 0.051, 1)
-    if (overlapWeightRatioThreshold < overlapWeightRatio):
+    if ((overlapWeightRatio <= 0.8) and (overlapWeightRatioThreshold < overlapWeightRatio)):
         overlapWeightRatioThresholdDict[aspectRatioStr] = overlapWeightRatio
         print("Adjust Overlap Weight Ratio Threshold to:", overlapWeightRatio)
 
