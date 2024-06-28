@@ -25,8 +25,9 @@ if MQTTBROKER and (MQTTBROKER > ""):
 
     def on_message(client, userdata, msg):
         global indoorData
-        # print(msg)
         indoorData = json.loads(msg.payload.decode())
+        if DEBUG == 'Y':
+            print(indoorData)
 
     client.subscribe(MQTTTOPIC)
     client.on_message = on_message
