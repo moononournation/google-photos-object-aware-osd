@@ -7,6 +7,7 @@ from lib import detector
 from lib import hkweather as weather
 from lib import indoor
 from lib import photoUtils
+from io import BytesIO
 
 DEBUG = os.getenv('DEBUG')
 GOOGLEPHOTOURL = os.getenv('GOOGLEPHOTO')
@@ -163,7 +164,11 @@ def getOSDPhoto():
         image = ImageOps.mirror(image)
 
     # return jpeg image
-    response = make_response(image.tobytes("jpeg", "RGB"))
+    # response = make_response(image.tobytes("jpeg", "RGB"))
+    imageStream = BytesIO()
+    image.save(imageStream, format='JPEG', quality=95)
+    response = make_response(imageStream.getvalue())
+
     response.headers["Content-Type"] = "image/jpeg"
     return response
 
