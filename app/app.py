@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 from flask import Flask, request, make_response
 from PIL import Image, ImageDraw, ImageEnhance, ImageFont, ImageOps
 from datetime import datetime
@@ -72,7 +73,7 @@ def getOSDPhoto():
         height = int(height)
     osdRatio = request.values.get("o")
     if osdRatio is None:
-        osdRatio = 0.5
+        osdRatio = 0.45
     else:
         osdRatio = float(osdRatio)
 
@@ -116,44 +117,47 @@ def getOSDPhoto():
     if DEBUG == 'Y':
         print("weather:", weatherIcon, temperature, humidity)
 
-    # Draw weather icon
-    weatherIconFilename = os.path.join(WEATHERICONPATH, weatherIcon)
-    icon = Image.open(weatherIconFilename, 'r')
-    icon = icon.resize((int(osdSize * 0.36), int(osdSize * 0.36)))
-    iconPos = (int(osd_rect[0] + (osdSize * 0.03)),
-               int(osd_rect[1] + (osdSize * 0.62)))
-    image.paste(icon, iconPos)
+    try:
+        # Draw weather icon
+        weatherIconFilename = os.path.join(WEATHERICONPATH, weatherIcon)
+        icon = Image.open(weatherIconFilename, 'r')
+        icon = icon.resize((int(osdSize * 0.36), int(osdSize * 0.36)))
+        iconPos = (int(osd_rect[0] + (osdSize * 0.03)),
+                int(osd_rect[1] + (osdSize * 0.62)))
+        image.paste(icon, iconPos)
 
-    # Draw indoor
-    indoorData = indoor.getIndoorData()
-    if indoorData:
-        # Draw weather
-        weatherString = str(temperature) + "°C " + str(humidity) + "%"
-        osdFont = ImageFont.truetype(fontpath, int(osdSize * 0.12))
-        draw.text((osd_rect[0] + (osdSize * 0.41), osd_rect[1] + (osdSize * 0.62)),
-                  weatherString, font=osdFont, fill=(255, 255, 255))
+        # Draw indoor
+        indoorData = indoor.getIndoorData()
+        if indoorData:
+            # Draw weather
+            weatherString = str(temperature) + "°C " + str(humidity) + "%"
+            osdFont = ImageFont.truetype(fontpath, int(osdSize * 0.12))
+            draw.text((osd_rect[0] + (osdSize * 0.41), osd_rect[1] + (osdSize * 0.62)),
+                    weatherString, font=osdFont, fill=(255, 255, 255))
 
-        indoorTemperature = int(indoorData["temperature"])
-        indoorHumidity = int(indoorData["humidity"])
-        if DEBUG == 'Y':
-            print("indoorData:", indoorTemperature, ",", indoorHumidity)
-        indoorString = str(indoorTemperature) + "°C " + \
-            str(indoorHumidity) + "%"
-        draw.text((osd_rect[0] + (osdSize * 0.41), osd_rect[1] + (osdSize * 0.84)),
-                  indoorString, font=osdFont, fill=(195, 195, 195))
-        osdFont = ImageFont.truetype(fontpath, int(osdSize * 0.08))
-        draw.text((osd_rect[0] + (osdSize * 0.41), osd_rect[1] + (osdSize * 0.77)),
-                  "Indoor:", font=osdFont, fill=(195, 195, 195))
-    else:
-        # Draw weather
-        temperatureString = str(temperature) + "°C"
-        osdFont = ImageFont.truetype(fontpath, int(osdSize * 0.19))
-        draw.text((osd_rect[0] + (osdSize * 0.42), osd_rect[1] + (osdSize * 0.61)),
-                  temperatureString, font=osdFont, fill=(255, 255, 255))
-        humidityString = str(humidity) + "%"
-        osdFont = ImageFont.truetype(fontpath, int(osdSize * 0.19))
-        draw.text((osd_rect[0] + (osdSize * 0.42), osd_rect[1] + (osdSize * 0.79)),
-                  humidityString, font=osdFont, fill=(255, 255, 255))
+            indoorTemperature = int(indoorData["temperature"])
+            indoorHumidity = int(indoorData["humidity"])
+            if DEBUG == 'Y':
+                print("indoorData:", indoorTemperature, ",", indoorHumidity)
+            indoorString = str(indoorTemperature) + "°C " + \
+                str(indoorHumidity) + "%"
+            draw.text((osd_rect[0] + (osdSize * 0.41), osd_rect[1] + (osdSize * 0.84)),
+                    indoorString, font=osdFont, fill=(195, 195, 195))
+            osdFont = ImageFont.truetype(fontpath, int(osdSize * 0.08))
+            draw.text((osd_rect[0] + (osdSize * 0.41), osd_rect[1] + (osdSize * 0.77)),
+                    "Indoor:", font=osdFont, fill=(195, 195, 195))
+        else:
+            # Draw weather
+            temperatureString = str(temperature) + "°C"
+            osdFont = ImageFont.truetype(fontpath, int(osdSize * 0.19))
+            draw.text((osd_rect[0] + (osdSize * 0.42), osd_rect[1] + (osdSize * 0.61)),
+                    temperatureString, font=osdFont, fill=(255, 255, 255))
+            humidityString = str(humidity) + "%"
+            osdFont = ImageFont.truetype(fontpath, int(osdSize * 0.19))
+            draw.text((osd_rect[0] + (osdSize * 0.42), osd_rect[1] + (osdSize * 0.79)),
+                    humidityString, font=osdFont, fill=(255, 255, 255))
+    except:
+        print("Something else went wrong")
 
     flip = request.values.get("flip")
     if flip == 'Y':
