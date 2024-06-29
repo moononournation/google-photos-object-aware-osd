@@ -6,12 +6,14 @@ RSSURL = "http://rss.weather.gov.hk/rss/CurrentWeather.xml"
 IMAGESEARCHPATTERN = "<img src=\""
 TEMPERATURESEARCHPATTERN = "Air temperature : "
 HUMIDITYSEARCHPATTERN = "Relative Humidity : "
+THUNDERSTORMSEARCHPATTERN = "The Thunderstorm Warning has been issued."
 
 lastUpdate = datetime(1970, 1, 1)
 imageUrl = None
 weatherIcon = None
 temperature = None
 humidity = None
+warning = None
 
 def updateWeather(WEATHERICONPATH):
     global lastUpdate, imageUrl, temperature, humidity, weatherIcon
@@ -52,7 +54,12 @@ def updateWeather(WEATHERICONPATH):
                         endPos = line.find(" ", startPos)
                         humidity = int(line[startPos:endPos])
                         print("humidity: ", humidity)
-
+                if not warning:
+                    startPos = line.find(THUNDERSTORMSEARCHPATTERN)
+                    # print(startPos)
+                    if startPos > 0:
+                        imageUrl = "https://rss.weather.gov.hk/img/ts.gif"
+                        print(THUNDERSTORMSEARCHPATTERN)
         if imageUrl:
             startPos = imageUrl.rfind("/") + 1
             weatherIcon = imageUrl[startPos:]
